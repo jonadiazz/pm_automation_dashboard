@@ -5,6 +5,12 @@ class DatabaseManager {
     // Use Railway's DATABASE_URL or fallback to local PostgreSQL
     const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/pm_dashboard';
 
+    console.log('🔍 Environment check:', {
+      NODE_ENV: process.env.NODE_ENV,
+      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+      CONNECTION_STRING: connectionString.substring(0, 20) + '...'
+    });
+
     this.pool = new Pool({
       connectionString,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
