@@ -11,10 +11,12 @@ const router = express.Router();
     if (!existingUser) {
       const hashedPassword = '$2a$10$rYT8qLqRMplNb7PwvJkM8eKzGhq8QBm4TYMhbf9XN7nkFf.X3Zrni'; // password: 'demo123'
       await db.createUser('demo', 'demo@example.com', hashedPassword);
-      console.log('✅ Demo user created');
+      console.log('✅ Demo user created successfully');
+    } else {
+      console.log('✅ Demo user already exists');
     }
   } catch (err) {
-    console.log('Demo user already exists or creation failed');
+    console.error('❌ Failed to create demo user:', err);
   }
 })();
 
@@ -118,6 +120,23 @@ router.get('/me', verifyToken, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Endpoint to manually create demo user (for debugging)
+router.post('/create-demo', async (req, res) => {
+  try {
+    const existingUser = await db.findUserByEmail('demo@example.com');
+    if (existingUser) {
+      return res.json({ message: 'Demo user already exists', user: { id: existingUser.id, username: existingUser.username, email: existingUser.email } });
+    }
+
+    const hashedPassword = '$2a$10$rYT8qLqRMplNb7PwvJkM8eKzGhq8QBm4TYMhbf9XN7nkFf.X3Zrni'; // password: 'demo123'
+    const newUser = await db.createUser('demo', 'demo@example.com', hashedPassword);
+    res.json({ message: 'Demo user created successfully', user: newUser });
+  } catch (error) {
+    console.error('Create demo user error:', error);
+    res.status(500).json({ error: 'Failed to create demo user', details: error.message });
   }
 });
 
