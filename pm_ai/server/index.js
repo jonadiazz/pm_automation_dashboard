@@ -16,7 +16,7 @@ const io = new Server(server, {
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://jvasquezz.github.io', 'https://jvasquezz.github.io/pm-dashboard']
+    ? ['https://jonadiazz.github.io', 'https://jonadiazz.github.io/pm-dashboard']
     : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   credentials: true
 }));
