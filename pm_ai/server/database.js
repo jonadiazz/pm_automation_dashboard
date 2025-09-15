@@ -1,22 +1,22 @@
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 class DatabaseManager {
   constructor() {
     const dbPath = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
-    try {
-      this.db = new Database(dbPath);
-      console.log('📁 Connected to SQLite database');
-      this.initTables();
-    } catch (err) {
-      console.error('Error opening database:', err);
-      throw err;
-    }
+    this.db = new sqlite3.Database(dbPath, (err) => {
+      if (err) {
+        console.error('Error opening database:', err);
+      } else {
+        console.log('📁 Connected to SQLite database');
+        this.initTables();
+      }
+    });
   }
 
   initTables() {
     // Users table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
@@ -28,7 +28,7 @@ class DatabaseManager {
     `);
 
     // Projects table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS projects (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -42,7 +42,7 @@ class DatabaseManager {
     `);
 
     // Agent executions table
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS agent_executions (
         id TEXT PRIMARY KEY,
         agent_type TEXT NOT NULL,
@@ -60,7 +60,7 @@ class DatabaseManager {
     `);
 
     // Project context table for agent data
-    this.db.exec(`
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS project_context (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
@@ -76,31 +76,33 @@ class DatabaseManager {
 
   // User operations
   createUser(username, email, hashedPassword) {
-    try {
-      const stmt = this.db.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)');
-      const result = stmt.run(username, email, hashedPassword);
-      return { id: result.lastInsertRowid, username, email };
-    } catch (err) {
-      throw err;
-    }
+    return new Promise((resolve, reject) => {
+      const sql = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
+      this.db.run(sql, [username, email, hashedPassword], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, username, email });
+      });
+    });
   }
 
   findUserByEmail(email) {
-    try {
-      const stmt = this.db.prepare('SELECT * FROM users WHERE email = ?');
-      return stmt.get(email);
-    } catch (err) {
-      throw err;
-    }
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT * FROM users WHERE email = ?';
+      this.db.get(sql, [email], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
   }
 
   findUserById(id) {
-    try {
-      const stmt = this.db.prepare('SELECT id, username, email, created_at FROM users WHERE id = ?');
-      return stmt.get(id);
-    } catch (err) {
-      throw err;
-    }
+    return new Promise((resolve, reject) => {
+      const sql = 'SELECT id, username, email, created_at FROM users WHERE id = ?';
+      this.db.get(sql, [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
   }
 
   // Project operations
@@ -145,12 +147,13 @@ class DatabaseManager {
   }
 
   close() {
-    try {
-      this.db.close();
-      console.log('📁 Database connection closed');
-    } catch (err) {
-      console.error('Error closing database:', err);
-    }
+    this.db.close((err) => {
+      if (err) {
+        console.error('Error closing database:', err);
+      } else {
+        console.log('📁 Database connection closed');
+      }
+    });
   }
 }
 

@@ -5,16 +5,18 @@ const db = require('../database');
 const router = express.Router();
 
 // Initialize demo user
-try {
-  const existingUser = db.findUserByEmail('demo@example.com');
-  if (!existingUser) {
-    const hashedPassword = '$2a$10$rYT8qLqRMplNb7PwvJkM8eKzGhq8QBm4TYMhbf9XN7nkFf.X3Zrni'; // password: 'demo123'
-    db.createUser('demo', 'demo@example.com', hashedPassword);
-    console.log('✅ Demo user created');
+(async () => {
+  try {
+    const existingUser = await db.findUserByEmail('demo@example.com');
+    if (!existingUser) {
+      const hashedPassword = '$2a$10$rYT8qLqRMplNb7PwvJkM8eKzGhq8QBm4TYMhbf9XN7nkFf.X3Zrni'; // password: 'demo123'
+      await db.createUser('demo', 'demo@example.com', hashedPassword);
+      console.log('✅ Demo user created');
+    }
+  } catch (err) {
+    console.log('Demo user already exists or creation failed');
   }
-} catch (err) {
-  console.log('Demo user already exists or creation failed');
-}
+})();
 
 // Register endpoint
 router.post('/register', async (req, res) => {
@@ -22,7 +24,7 @@ router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
 
     // Check if user exists
-    const existingUser = db.findUserByEmail(email);
+    const existingUser = await db.findUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
@@ -31,7 +33,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const newUser = db.createUser(username, email, hashedPassword);
+    const newUser = await db.createUser(username, email, hashedPassword);
 
     // Generate token
     const token = jwt.sign(
@@ -56,7 +58,7 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     // Find user
-    const user = db.findUserByEmail(email);
+    const user = await db.findUserByEmail(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -102,9 +104,9 @@ const verifyToken = (req, res, next) => {
 };
 
 // Protected route example
-router.get('/me', verifyToken, (req, res) => {
+router.get('/me', verifyToken, async (req, res) => {
   try {
-    const user = db.findUserById(req.user.userId);
+    const user = await db.findUserById(req.user.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
