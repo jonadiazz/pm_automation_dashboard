@@ -10,14 +10,16 @@ class DatabaseManager {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
 
-    console.log('📁 Connected to PostgreSQL database');
-    this.initTables();
+    console.log('📁 PostgreSQL connection configured');
+    this.initTables().catch(err => {
+      console.warn('⚠️  Database initialization failed, continuing without database:', err.message);
+    });
   }
 
   async initTables() {
-    const client = await this.pool.connect();
-
+    let client;
     try {
+      client = await this.pool.connect();
       // Users table
       await client.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -74,7 +76,9 @@ class DatabaseManager {
     } catch (err) {
       console.error('❌ Error initializing database tables:', err);
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
